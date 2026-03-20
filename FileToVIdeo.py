@@ -697,7 +697,8 @@ class FileToVideoApp:
 
     def _load_icon(self):
         try:
-            ico = os.path.join('DATA', 'ico.ico')
+            base = os.path.dirname(os.path.abspath(__file__))
+            ico = os.path.join(base, 'DATA', 'ico.ico')
             if os.path.exists(ico):
                 self.root.iconbitmap(ico)
         except Exception:
