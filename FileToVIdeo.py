@@ -8,7 +8,7 @@ UI and additional by BlackCAT304: https://github.com/BlackCAT304-RT/FileToVideo
 """
 
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import threading
 import sys
 import os
@@ -326,7 +326,6 @@ FOOTER_TEXT = (
 )
 
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # BACKEND
 # ─────────────────────────────────────────────────────────────────────────────
@@ -404,7 +403,8 @@ if BACKEND_AVAILABLE:
                 bits.append('0')
             return [''.join(bits[i:i+4]) for i in range(0, len(bits), 4)]
 
-        def encode(self, input_file, output_file):
+        # ── progress_callback(current_frame, total_frames) ──────────────────
+        def encode(self, input_file, output_file, progress_callback=None):
             with open(input_file, 'rb') as f:
                 data = f.read()
             print(f"\nFile: {input_file}")
@@ -420,14 +420,19 @@ if BACKEND_AVAILABLE:
                 self._data_to_blocks(self.eof_bytes)
             )
             print(f"Total blocks: {len(all_blocks)}")
-            frames_needed = math.ceil(len(all_blocks) / self.blocks_per_region) + 5
+            data_frames = math.ceil(len(all_blocks) / self.blocks_per_region)
+            frames_needed = data_frames + 5
             print(f"Frames needed: {frames_needed}")
             print(f"Duration: {frames_needed / self.fps:.1f}s")
             temp_dir = tempfile.mkdtemp()
             try:
-                for frame_num in range(frames_needed - 5):
+                for frame_num in range(data_frames):
                     if frame_num % 10 == 0:
                         print(f"Frame {frame_num + 1}/{frames_needed}")
+                    # ── report progress (data frames only, 0–90%) ──────────
+                    if progress_callback:
+                        progress_callback(frame_num + 1, frames_needed)
+
                     frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
                     frame = self._draw_markers(frame)
                     start_idx = frame_num * self.blocks_per_region
@@ -440,15 +445,21 @@ if BACKEND_AVAILABLE:
                             if x < self.blocks_x * 2 and y < self.blocks_y * 2:
                                 self._draw_block(frame, x, y, self._bits_to_color(bits))
                     cv2.imwrite(os.path.join(temp_dir, f"frame_{frame_num:05d}.png"), frame)
+
                 print("Creating guard frames...")
                 for i in range(5):
-                    fn = frames_needed - 5 + i
+                    fn = data_frames + i
                     frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
                     frame = self._draw_markers(frame)
                     for y in range(self.blocks_y * 2):
                         for x in range(self.blocks_x * 2):
                             self._draw_block(frame, x, y, (255, 0, 0))
                     cv2.imwrite(os.path.join(temp_dir, f"frame_{fn:05d}.png"), frame)
+
+                # ── ffmpeg / muxing phase: report indeterminate progress ────
+                if progress_callback:
+                    progress_callback(frames_needed, frames_needed)  # show 100% during mux
+
                 print("Converting to MP4...")
                 try:
                     subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
@@ -570,7 +581,8 @@ if BACKEND_AVAILABLE:
                     return i
             return -1
 
-        def decode(self, video_file, output_dir='.'):
+        # ── progress_callback(current_frame, total_frames) ──────────────────
+        def decode(self, video_file, output_dir='.', progress_callback=None):
             print(f"\nDecoding: {video_file}")
             if not os.path.exists(video_file):
                 print(f"File not found: {video_file}")
@@ -596,6 +608,10 @@ if BACKEND_AVAILABLE:
                     sp = done / el if el > 0 else 0
                     cr = self.cache_hits / max(1, self.cache_hits + self.cache_misses) * 100
                     print(f"  Progress: {fn}/{total} | {sp:.1f} fps | Cache: {cr:.1f}%")
+                # ── report progress every frame ────────────────────────────
+                if progress_callback:
+                    progress_callback(fn + 1, total)
+
                 all_blocks.extend(self.decode_frame(frame))
             cap.release()
             el = time.time() - t0
@@ -664,8 +680,8 @@ class FileToVideoApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("FileToVideo")
-        self.root.geometry("740x520")
-        self.root.minsize(560, 380)
+        self.root.geometry("740x560")          # немного выше чтобы влезли прогресс-бары
+        self.root.minsize(560, 400)
         self.root.resizable(False, False)
 
         self.current_lang  = 'ru'
@@ -681,6 +697,10 @@ class FileToVideoApp:
         self.dec_out_var = tk.StringVar()
         self.key_var     = tk.StringVar()
         self.lang_var    = tk.StringVar(value=LANGUAGE_NAMES['ru'])
+
+        # ── прогресс-переменные (0.0 – 100.0) ────────────────────────────
+        self.enc_progress_var = tk.DoubleVar(value=0.0)
+        self.dec_progress_var = tk.DoubleVar(value=0.0)
 
         self.display_to_code = {LANGUAGE_NAMES[c]: c for c in LANG_ORDER}
 
@@ -708,6 +728,20 @@ class FileToVideoApp:
         return TRANSLATIONS.get(self.current_lang, TRANSLATIONS['en']).get(
             key, TRANSLATIONS['en'].get(key, key))
 
+    # ── progress helper (вызывается из рабочего треда) ────────────────────────
+    def _make_enc_progress_cb(self):
+        """Возвращает колбэк для энкодера, безопасный для вызова из треда."""
+        def cb(current, total):
+            pct = (current / total * 100.0) if total > 0 else 0.0
+            self.root.after(0, lambda p=pct: self.enc_progress_var.set(p))
+        return cb
+
+    def _make_dec_progress_cb(self):
+        """Возвращает колбэк для декодера, безопасный для вызова из треда."""
+        def cb(current, total):
+            pct = (current / total * 100.0) if total > 0 else 0.0
+            self.root.after(0, lambda p=pct: self.dec_progress_var.set(p))
+        return cb
 
     # ── build ─────────────────────────────────────────────────────────────────
 
@@ -735,7 +769,7 @@ class FileToVideoApp:
         self.paned.grid(row=1, column=0, sticky='nsew', padx=2, pady=2)
 
         self.content_host = tk.Frame(self.paned)
-        self.paned.add(self.content_host, minsize=140, stretch='always')
+        self.paned.add(self.content_host, minsize=160, stretch='always')
         self.content_host.columnconfigure(0, weight=1)
         self.content_host.rowconfigure(0, weight=1)
 
@@ -755,7 +789,7 @@ class FileToVideoApp:
         self._build_footer()
 
         self.root.update_idletasks()
-        self.root.after(60, lambda: self.paned.sash_place(0, 0, 210))
+        self.root.after(60, lambda: self.paned.sash_place(0, 0, 240))
 
     # ── encode tab ────────────────────────────────────────────────────────────
 
@@ -796,13 +830,21 @@ class FileToVideoApp:
         self.enc_load_btn.pack(side='left')
 
         sf = tk.Frame(f)
-        sf.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 6))
+        sf.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 4))
         self.enc_start_btn = tk.Button(sf, command=self._start_encode)
         self.enc_start_btn.pack(side='left', padx=(0, 10))
         self.enc_status_lbl = tk.Label(sf, font=('TkDefaultFont', 8))
         self.enc_status_lbl.pack(side='left')
         self.enc_status_val = tk.Label(sf, font=('TkDefaultFont', 8))
         self.enc_status_val.pack(side='left')
+
+        # ── прогресс-бар (строка 4) ───────────────────────────────────────
+        self.enc_progress = ttk.Progressbar(
+            f, variable=self.enc_progress_var,
+            maximum=100, mode='determinate', length=400
+        )
+        self.enc_progress.grid(row=4, column=0, columnspan=3,
+                                sticky='ew', padx=8, pady=(0, 8))
 
         return f
 
@@ -845,13 +887,21 @@ class FileToVideoApp:
         self.dec_load_btn.pack(side='left')
 
         sf2 = tk.Frame(f)
-        sf2.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 6))
+        sf2.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 4))
         self.dec_start_btn = tk.Button(sf2, command=self._start_decode)
         self.dec_start_btn.pack(side='left', padx=(0, 10))
         self.dec_status_lbl = tk.Label(sf2, font=('TkDefaultFont', 8))
         self.dec_status_lbl.pack(side='left')
         self.dec_status_val = tk.Label(sf2, font=('TkDefaultFont', 8))
         self.dec_status_val.pack(side='left')
+
+        # ── прогресс-бар (строка 4) ───────────────────────────────────────
+        self.dec_progress = ttk.Progressbar(
+            f, variable=self.dec_progress_var,
+            maximum=100, mode='determinate', length=400
+        )
+        self.dec_progress.grid(row=4, column=0, columnspan=3,
+                                sticky='ew', padx=8, pady=(0, 8))
 
         return f
 
@@ -1004,6 +1054,7 @@ class FileToVideoApp:
         if not out:
             out = os.path.splitext(inp)[0] + '_encoded.mp4'
             self.enc_out_var.set(out)
+        self.enc_progress_var.set(0.0)           # сбросить бар перед стартом
         self._set_busy(True, 'encoding')
         threading.Thread(
             target=self._run_encode,
@@ -1015,11 +1066,15 @@ class FileToVideoApp:
         old, sys.stdout = sys.stdout, QueueStream(self.con_queue)
         ok = False
         try:
-            ok = YouTubeEncoder(key).encode(inp, out)
+            ok = YouTubeEncoder(key).encode(inp, out,
+                                             progress_callback=self._make_enc_progress_cb())
         except Exception as e:
             print(f"Exception: {e}")
         finally:
             sys.stdout = old
+            # Установить 100% при успехе, 0% при ошибке
+            final_pct = 100.0 if ok else 0.0
+            self.root.after(0, lambda: self.enc_progress_var.set(final_pct))
             self.root.after(0, lambda: self._set_busy(False, 'done' if ok else 'error'))
 
     def _start_decode(self):
@@ -1035,6 +1090,7 @@ class FileToVideoApp:
             self._log("ERROR: No input file selected\n")
             messagebox.showwarning("FileToVideo", self.t('select_input'))
             return
+        self.dec_progress_var.set(0.0)           # сбросить бар перед стартом
         self._set_busy(True, 'decoding')
         threading.Thread(
             target=self._run_decode,
@@ -1046,11 +1102,14 @@ class FileToVideoApp:
         old, sys.stdout = sys.stdout, QueueStream(self.con_queue)
         ok = False
         try:
-            ok = YouTubeDecoder(key).decode(inp, out)
+            ok = YouTubeDecoder(key).decode(inp, out,
+                                             progress_callback=self._make_dec_progress_cb())
         except Exception as e:
             print(f"Exception: {e}")
         finally:
             sys.stdout = old
+            final_pct = 100.0 if ok else 0.0
+            self.root.after(0, lambda: self.dec_progress_var.set(final_pct))
             self.root.after(0, lambda: self._set_busy(False, 'done' if ok else 'error'))
 
     def _set_busy(self, busy, status='ready'):
