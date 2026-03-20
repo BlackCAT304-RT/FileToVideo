@@ -1060,6 +1060,8 @@ class FileToVideoApp:
         txt = self.t(status)
         self.enc_status_val.config(text=txt)
         self.dec_status_val.config(text=txt)
+        if not busy:
+            self._load_icon()  # Re-apply icon after subprocess/thread resets it
 
     # ── console ───────────────────────────────────────────────────────────────
 
