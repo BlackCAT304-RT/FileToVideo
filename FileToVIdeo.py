@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-FileToVideo v2.0
+FileToVideo v2.1
 
 Original code by KorocheVolgin: https://github.com/KorocheVolgin/YouTube-Cloude/
 UI and additional by BlackCAT304: https://github.com/BlackCAT304-RT/FileToVideo
@@ -12,7 +12,6 @@ from tkinter import filedialog, messagebox, ttk
 import threading
 import sys
 import os
-import queue
 import time
 import webbrowser
 
@@ -39,11 +38,11 @@ TRANSLATIONS = {
         'input_file': 'Input File:', 'output_file': 'Output File (MP4):',
         'output_folder': 'Output Folder:', 'browse': 'Browse...',
         'start_encode': 'Start Encoding', 'start_decode': 'Start Decoding',
-        'clear_console': 'Clear', 'encryption_key': 'Encryption Key:',
+        'encryption_key': 'Encryption Key:',
         'no_key': '(leave empty to disable encryption)',
         'theme': 'Theme:', 'language': 'Language:',
         'theme_system': 'System', 'theme_dark': 'Dark', 'theme_light': 'Light',
-        'console_label': 'Console Output:', 'ready': 'Ready',
+        'ready': 'Ready',
         'encoding': 'Encoding...', 'decoding': 'Decoding...',
         'done': 'Done!', 'error': 'Error',
         'select_input': 'Select Input File',
@@ -56,17 +55,36 @@ TRANSLATIONS = {
         'settings_title': 'Settings',
         'show_key': 'Show', 'hide_key': 'Hide',
         'status': 'Status:',
+        # stats labels
+        'stat_elapsed':   'Elapsed:',
+        'stat_remaining': 'Remaining:',
+        'stat_frame':     'Frame:',
+        'stat_blocks':    'Blocks/frame:',
+        'stat_blocksize': 'Block size:',
+        'stat_filesize':  'File size:',
+        'stat_grid':      'Grid:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Encryption:',
+        'stat_on':        'ON',
+        'stat_off':       'OFF',
+        # completion dialog
+        'done_title':     'Completed!',
+        'done_encode':    'Encoding finished in {t}.\n\nOutput: {out}\nSize: {sz}\nFrames: {fr}\nDuration: {dur}',
+        'done_decode':    'Decoding finished in {t}.\n\nOutput: {out}\nFrames processed: {fr}',
+        'err_title':      'Error',
+        'err_encode':     'Encoding failed after {t}.',
+        'err_decode':     'Decoding failed after {t}.',
     },
     'ru': {
         'encode': 'Кодировка', 'decode': 'Раскодировка', 'settings': 'Настройки',
         'input_file': 'Входной файл:', 'output_file': 'Выходной файл (MP4):',
         'output_folder': 'Папка вывода:', 'browse': 'Обзор...',
         'start_encode': 'Начать кодирование', 'start_decode': 'Начать декодирование',
-        'clear_console': 'Очистить', 'encryption_key': 'Ключ шифрования:',
+        'encryption_key': 'Ключ шифрования:',
         'no_key': '(оставьте пустым для отключения шифрования)',
         'theme': 'Тема:', 'language': 'Язык:',
         'theme_system': 'Системная', 'theme_dark': 'Тёмная', 'theme_light': 'Светлая',
-        'console_label': 'Вывод консоли:', 'ready': 'Готово',
+        'ready': 'Готово',
         'encoding': 'Кодирование...', 'decoding': 'Декодирование...',
         'done': 'Завершено!', 'error': 'Ошибка',
         'select_input': 'Выберите входной файл',
@@ -79,17 +97,34 @@ TRANSLATIONS = {
         'settings_title': 'Настройки',
         'show_key': 'Показать', 'hide_key': 'Скрыть',
         'status': 'Статус:',
+        'stat_elapsed':   'Прошло:',
+        'stat_remaining': 'Осталось:',
+        'stat_frame':     'Кадр:',
+        'stat_blocks':    'Блоков/кадр:',
+        'stat_blocksize': 'Размер блока:',
+        'stat_filesize':  'Размер файла:',
+        'stat_grid':      'Сетка:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Шифрование:',
+        'stat_on':        'ВКЛ',
+        'stat_off':       'ВЫКЛ',
+        'done_title':     'Завершено!',
+        'done_encode':    'Кодирование завершено за {t}.\n\nФайл: {out}\nРазмер: {sz}\nКадров: {fr}\nДлительность: {dur}',
+        'done_decode':    'Декодирование завершено за {t}.\n\nФайл: {out}\nОбработано кадров: {fr}',
+        'err_title':      'Ошибка',
+        'err_encode':     'Кодирование завершилось с ошибкой за {t}.',
+        'err_decode':     'Декодирование завершилось с ошибкой за {t}.',
     },
     'uk': {
         'encode': 'Кодування', 'decode': 'Декодування', 'settings': 'Налаштування',
         'input_file': 'Вхідний файл:', 'output_file': 'Вихідний файл (MP4):',
         'output_folder': 'Папка виводу:', 'browse': 'Огляд...',
         'start_encode': 'Почати кодування', 'start_decode': 'Почати декодування',
-        'clear_console': 'Очистити', 'encryption_key': 'Ключ шифрування:',
+        'encryption_key': 'Ключ шифрування:',
         'no_key': '(залиште порожнім для вимкнення шифрування)',
         'theme': 'Тема:', 'language': 'Мова:',
         'theme_system': 'Системна', 'theme_dark': 'Темна', 'theme_light': 'Світла',
-        'console_label': 'Вивід консолі:', 'ready': 'Готово',
+        'ready': 'Готово',
         'encoding': 'Кодування...', 'decoding': 'Декодування...',
         'done': 'Завершено!', 'error': 'Помилка',
         'select_input': 'Виберіть вхідний файл',
@@ -102,17 +137,34 @@ TRANSLATIONS = {
         'settings_title': 'Налаштування',
         'show_key': 'Показати', 'hide_key': 'Сховати',
         'status': 'Статус:',
+        'stat_elapsed':   'Минуло:',
+        'stat_remaining': 'Залишилось:',
+        'stat_frame':     'Кадр:',
+        'stat_blocks':    'Блоків/кадр:',
+        'stat_blocksize': 'Розмір блоку:',
+        'stat_filesize':  'Розмір файлу:',
+        'stat_grid':      'Сітка:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Шифрування:',
+        'stat_on':        'УВМ',
+        'stat_off':       'ВИМК',
+        'done_title':     'Завершено!',
+        'done_encode':    'Кодування завершено за {t}.\n\nФайл: {out}\nРозмір: {sz}\nКадрів: {fr}\nТривалість: {dur}',
+        'done_decode':    'Декодування завершено за {t}.\n\nФайл: {out}\nОброблено кадрів: {fr}',
+        'err_title':      'Помилка',
+        'err_encode':     'Кодування завершилося з помилкою за {t}.',
+        'err_decode':     'Декодування завершилося з помилкою за {t}.',
     },
     'de': {
         'encode': 'Kodieren', 'decode': 'Dekodieren', 'settings': 'Einstellungen',
         'input_file': 'Eingabedatei:', 'output_file': 'Ausgabedatei (MP4):',
         'output_folder': 'Ausgabeordner:', 'browse': 'Durchsuchen...',
         'start_encode': 'Kodierung starten', 'start_decode': 'Dekodierung starten',
-        'clear_console': 'Leeren', 'encryption_key': 'Verschlüsselungsschlüssel:',
+        'encryption_key': 'Verschlüsselungsschlüssel:',
         'no_key': '(leer lassen zum Deaktivieren)',
         'theme': 'Thema:', 'language': 'Sprache:',
         'theme_system': 'System', 'theme_dark': 'Dunkel', 'theme_light': 'Hell',
-        'console_label': 'Konsolenausgabe:', 'ready': 'Bereit',
+        'ready': 'Bereit',
         'encoding': 'Kodierung...', 'decoding': 'Dekodierung...',
         'done': 'Fertig!', 'error': 'Fehler',
         'select_input': 'Eingabedatei auswählen',
@@ -125,17 +177,34 @@ TRANSLATIONS = {
         'settings_title': 'Einstellungen',
         'show_key': 'Anzeigen', 'hide_key': 'Verbergen',
         'status': 'Status:',
+        'stat_elapsed':   'Vergangen:',
+        'stat_remaining': 'Verbleibend:',
+        'stat_frame':     'Frame:',
+        'stat_blocks':    'Blöcke/Frame:',
+        'stat_blocksize': 'Blockgröße:',
+        'stat_filesize':  'Dateigröße:',
+        'stat_grid':      'Gitter:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Verschlüsselung:',
+        'stat_on':        'AN',
+        'stat_off':       'AUS',
+        'done_title':     'Abgeschlossen!',
+        'done_encode':    'Kodierung abgeschlossen in {t}.\n\nDatei: {out}\nGröße: {sz}\nFrames: {fr}\nDauer: {dur}',
+        'done_decode':    'Dekodierung abgeschlossen in {t}.\n\nDatei: {out}\nFrames verarbeitet: {fr}',
+        'err_title':      'Fehler',
+        'err_encode':     'Kodierung fehlgeschlagen nach {t}.',
+        'err_decode':     'Dekodierung fehlgeschlagen nach {t}.',
     },
     'fr': {
         'encode': 'Encoder', 'decode': 'Décoder', 'settings': 'Paramètres',
         'input_file': "Fichier d'entrée:", 'output_file': 'Fichier de sortie (MP4):',
         'output_folder': 'Dossier de sortie:', 'browse': 'Parcourir...',
         'start_encode': "Démarrer l'encodage", 'start_decode': 'Démarrer le décodage',
-        'clear_console': 'Effacer', 'encryption_key': 'Clé de chiffrement:',
+        'encryption_key': 'Clé de chiffrement:',
         'no_key': '(laisser vide pour désactiver)',
         'theme': 'Thème:', 'language': 'Langue:',
         'theme_system': 'Système', 'theme_dark': 'Sombre', 'theme_light': 'Clair',
-        'console_label': 'Sortie console:', 'ready': 'Prêt',
+        'ready': 'Prêt',
         'encoding': 'Encodage...', 'decoding': 'Décodage...',
         'done': 'Terminé!', 'error': 'Erreur',
         'select_input': "Sélectionner le fichier d'entrée",
@@ -148,17 +217,34 @@ TRANSLATIONS = {
         'settings_title': 'Paramètres',
         'show_key': 'Afficher', 'hide_key': 'Masquer',
         'status': 'Statut:',
+        'stat_elapsed':   'Écoulé:',
+        'stat_remaining': 'Restant:',
+        'stat_frame':     'Image:',
+        'stat_blocks':    'Blocs/image:',
+        'stat_blocksize': 'Taille bloc:',
+        'stat_filesize':  'Taille fichier:',
+        'stat_grid':      'Grille:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Chiffrement:',
+        'stat_on':        'OUI',
+        'stat_off':       'NON',
+        'done_title':     'Terminé!',
+        'done_encode':    'Encodage terminé en {t}.\n\nFichier: {out}\nTaille: {sz}\nImages: {fr}\nDurée: {dur}',
+        'done_decode':    'Décodage terminé en {t}.\n\nFichier: {out}\nImages traitées: {fr}',
+        'err_title':      'Erreur',
+        'err_encode':     'Encodage échoué après {t}.',
+        'err_decode':     'Décodage échoué après {t}.',
     },
     'es': {
         'encode': 'Codificar', 'decode': 'Decodificar', 'settings': 'Configuración',
         'input_file': 'Archivo de entrada:', 'output_file': 'Archivo de salida (MP4):',
         'output_folder': 'Carpeta de salida:', 'browse': 'Examinar...',
         'start_encode': 'Iniciar codificación', 'start_decode': 'Iniciar decodificación',
-        'clear_console': 'Limpiar', 'encryption_key': 'Clave de cifrado:',
+        'encryption_key': 'Clave de cifrado:',
         'no_key': '(dejar vacío para desactivar)',
         'theme': 'Tema:', 'language': 'Idioma:',
         'theme_system': 'Sistema', 'theme_dark': 'Oscuro', 'theme_light': 'Claro',
-        'console_label': 'Salida de consola:', 'ready': 'Listo',
+        'ready': 'Listo',
         'encoding': 'Codificando...', 'decoding': 'Decodificando...',
         'done': '¡Completado!', 'error': 'Error',
         'select_input': 'Seleccionar archivo de entrada',
@@ -171,17 +257,34 @@ TRANSLATIONS = {
         'settings_title': 'Configuración',
         'show_key': 'Mostrar', 'hide_key': 'Ocultar',
         'status': 'Estado:',
+        'stat_elapsed':   'Transcurrido:',
+        'stat_remaining': 'Restante:',
+        'stat_frame':     'Fotograma:',
+        'stat_blocks':    'Bloques/fotograma:',
+        'stat_blocksize': 'Tamaño bloque:',
+        'stat_filesize':  'Tamaño archivo:',
+        'stat_grid':      'Cuadrícula:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Cifrado:',
+        'stat_on':        'SÍ',
+        'stat_off':       'NO',
+        'done_title':     '¡Completado!',
+        'done_encode':    'Codificación completada en {t}.\n\nArchivo: {out}\nTamaño: {sz}\nFotogramas: {fr}\nDuración: {dur}',
+        'done_decode':    'Decodificación completada en {t}.\n\nArchivo: {out}\nFotogramas procesados: {fr}',
+        'err_title':      'Error',
+        'err_encode':     'Codificación fallida tras {t}.',
+        'err_decode':     'Decodificación fallida tras {t}.',
     },
     'pl': {
         'encode': 'Kodowanie', 'decode': 'Dekodowanie', 'settings': 'Ustawienia',
         'input_file': 'Plik wejściowy:', 'output_file': 'Plik wyjściowy (MP4):',
         'output_folder': 'Folder wyjściowy:', 'browse': 'Przeglądaj...',
         'start_encode': 'Rozpocznij kodowanie', 'start_decode': 'Rozpocznij dekodowanie',
-        'clear_console': 'Wyczyść', 'encryption_key': 'Klucz szyfrowania:',
+        'encryption_key': 'Klucz szyfrowania:',
         'no_key': '(pozostaw puste aby wyłączyć)',
         'theme': 'Motyw:', 'language': 'Język:',
         'theme_system': 'Systemowy', 'theme_dark': 'Ciemny', 'theme_light': 'Jasny',
-        'console_label': 'Wyjście konsoli:', 'ready': 'Gotowe',
+        'ready': 'Gotowe',
         'encoding': 'Kodowanie...', 'decoding': 'Dekodowanie...',
         'done': 'Gotowe!', 'error': 'Błąd',
         'select_input': 'Wybierz plik wejściowy',
@@ -194,17 +297,34 @@ TRANSLATIONS = {
         'settings_title': 'Ustawienia',
         'show_key': 'Pokaż', 'hide_key': 'Ukryj',
         'status': 'Status:',
+        'stat_elapsed':   'Upłynęło:',
+        'stat_remaining': 'Pozostało:',
+        'stat_frame':     'Klatka:',
+        'stat_blocks':    'Bloki/klatka:',
+        'stat_blocksize': 'Rozmiar bloku:',
+        'stat_filesize':  'Rozmiar pliku:',
+        'stat_grid':      'Siatka:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Szyfrowanie:',
+        'stat_on':        'WŁ',
+        'stat_off':       'WYŁ',
+        'done_title':     'Gotowe!',
+        'done_encode':    'Kodowanie zakończone w {t}.\n\nPlik: {out}\nRozmiar: {sz}\nKlatki: {fr}\nCzas trwania: {dur}',
+        'done_decode':    'Dekodowanie zakończone w {t}.\n\nPlik: {out}\nPrzetworzone klatki: {fr}',
+        'err_title':      'Błąd',
+        'err_encode':     'Kodowanie nieudane po {t}.',
+        'err_decode':     'Dekodowanie nieudane po {t}.',
     },
     'pt': {
         'encode': 'Codificar', 'decode': 'Decodificar', 'settings': 'Configurações',
         'input_file': 'Arquivo de entrada:', 'output_file': 'Arquivo de saída (MP4):',
         'output_folder': 'Pasta de saída:', 'browse': 'Procurar...',
         'start_encode': 'Iniciar codificação', 'start_decode': 'Iniciar decodificação',
-        'clear_console': 'Limpar', 'encryption_key': 'Chave de criptografia:',
+        'encryption_key': 'Chave de criptografia:',
         'no_key': '(deixe vazio para desativar)',
         'theme': 'Tema:', 'language': 'Idioma:',
         'theme_system': 'Sistema', 'theme_dark': 'Escuro', 'theme_light': 'Claro',
-        'console_label': 'Saída do console:', 'ready': 'Pronto',
+        'ready': 'Pronto',
         'encoding': 'Codificando...', 'decoding': 'Decodificando...',
         'done': 'Concluído!', 'error': 'Erro',
         'select_input': 'Selecionar arquivo de entrada',
@@ -217,17 +337,34 @@ TRANSLATIONS = {
         'settings_title': 'Configurações',
         'show_key': 'Mostrar', 'hide_key': 'Ocultar',
         'status': 'Status:',
+        'stat_elapsed':   'Decorrido:',
+        'stat_remaining': 'Restante:',
+        'stat_frame':     'Quadro:',
+        'stat_blocks':    'Blocos/quadro:',
+        'stat_blocksize': 'Tamanho bloco:',
+        'stat_filesize':  'Tamanho arquivo:',
+        'stat_grid':      'Grade:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Criptografia:',
+        'stat_on':        'SIM',
+        'stat_off':       'NÃO',
+        'done_title':     'Concluído!',
+        'done_encode':    'Codificação concluída em {t}.\n\nArquivo: {out}\nTamanho: {sz}\nQuadros: {fr}\nDuração: {dur}',
+        'done_decode':    'Decodificação concluída em {t}.\n\nArquivo: {out}\nQuadros processados: {fr}',
+        'err_title':      'Erro',
+        'err_encode':     'Codificação falhou após {t}.',
+        'err_decode':     'Decodificação falhou após {t}.',
     },
     'it': {
         'encode': 'Codifica', 'decode': 'Decodifica', 'settings': 'Impostazioni',
         'input_file': 'File di input:', 'output_file': 'File di output (MP4):',
         'output_folder': 'Cartella di output:', 'browse': 'Sfoglia...',
         'start_encode': 'Avvia codifica', 'start_decode': 'Avvia decodifica',
-        'clear_console': 'Pulisci', 'encryption_key': 'Chiave di cifratura:',
+        'encryption_key': 'Chiave di cifratura:',
         'no_key': '(lascia vuoto per disabilitare)',
         'theme': 'Tema:', 'language': 'Lingua:',
         'theme_system': 'Sistema', 'theme_dark': 'Scuro', 'theme_light': 'Chiaro',
-        'console_label': 'Output console:', 'ready': 'Pronto',
+        'ready': 'Pronto',
         'encoding': 'Codifica...', 'decoding': 'Decodifica...',
         'done': 'Completato!', 'error': 'Errore',
         'select_input': 'Seleziona file di input',
@@ -240,17 +377,34 @@ TRANSLATIONS = {
         'settings_title': 'Impostazioni',
         'show_key': 'Mostra', 'hide_key': 'Nascondi',
         'status': 'Stato:',
+        'stat_elapsed':   'Trascorso:',
+        'stat_remaining': 'Rimanente:',
+        'stat_frame':     'Frame:',
+        'stat_blocks':    'Blocchi/frame:',
+        'stat_blocksize': 'Dim. blocco:',
+        'stat_filesize':  'Dim. file:',
+        'stat_grid':      'Griglia:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   'Cifratura:',
+        'stat_on':        'SÌ',
+        'stat_off':       'NO',
+        'done_title':     'Completato!',
+        'done_encode':    'Codifica completata in {t}.\n\nFile: {out}\nDimensione: {sz}\nFrame: {fr}\nDurata: {dur}',
+        'done_decode':    'Decodifica completata in {t}.\n\nFile: {out}\nFrame elaborati: {fr}',
+        'err_title':      'Errore',
+        'err_encode':     'Codifica fallita dopo {t}.',
+        'err_decode':     'Decodifica fallita dopo {t}.',
     },
     'zh': {
         'encode': '编码', 'decode': '解码', 'settings': '设置',
         'input_file': '输入文件：', 'output_file': '输出文件（MP4）：',
         'output_folder': '输出文件夹：', 'browse': '浏览...',
         'start_encode': '开始编码', 'start_decode': '开始解码',
-        'clear_console': '清除', 'encryption_key': '加密密钥：',
+        'encryption_key': '加密密钥：',
         'no_key': '（留空以禁用加密）',
         'theme': '主题：', 'language': '语言：',
         'theme_system': '系统', 'theme_dark': '深色', 'theme_light': '浅色',
-        'console_label': '控制台输出：', 'ready': '就绪',
+        'ready': '就绪',
         'encoding': '编码中...', 'decoding': '解码中...',
         'done': '完成！', 'error': '错误',
         'select_input': '选择输入文件',
@@ -263,17 +417,34 @@ TRANSLATIONS = {
         'settings_title': '设置',
         'show_key': '显示', 'hide_key': '隐藏',
         'status': '状态：',
+        'stat_elapsed':   '已用时：',
+        'stat_remaining': '剩余：',
+        'stat_frame':     '帧：',
+        'stat_blocks':    '块/帧：',
+        'stat_blocksize': '块大小：',
+        'stat_filesize':  '文件大小：',
+        'stat_grid':      '网格：',
+        'stat_fps':       '帧率：',
+        'stat_encrypt':   '加密：',
+        'stat_on':        '开',
+        'stat_off':       '关',
+        'done_title':     '完成！',
+        'done_encode':    '编码完成，用时 {t}。\n\n文件：{out}\n大小：{sz}\n帧数：{fr}\n时长：{dur}',
+        'done_decode':    '解码完成，用时 {t}。\n\n文件：{out}\n处理帧数：{fr}',
+        'err_title':      '错误',
+        'err_encode':     '编码失败，用时 {t}。',
+        'err_decode':     '解码失败，用时 {t}。',
     },
     'ja': {
         'encode': 'エンコード', 'decode': 'デコード', 'settings': '設定',
         'input_file': '入力ファイル：', 'output_file': '出力ファイル（MP4）：',
         'output_folder': '出力フォルダ：', 'browse': '参照...',
         'start_encode': 'エンコード開始', 'start_decode': 'デコード開始',
-        'clear_console': 'クリア', 'encryption_key': '暗号化キー：',
+        'encryption_key': '暗号化キー：',
         'no_key': '（空欄で暗号化を無効化）',
         'theme': 'テーマ：', 'language': '言語：',
         'theme_system': 'システム', 'theme_dark': 'ダーク', 'theme_light': 'ライト',
-        'console_label': 'コンソール出力：', 'ready': '準備完了',
+        'ready': '準備完了',
         'encoding': 'エンコード中...', 'decoding': 'デコード中...',
         'done': '完了！', 'error': 'エラー',
         'select_input': '入力ファイルを選択',
@@ -286,17 +457,34 @@ TRANSLATIONS = {
         'settings_title': '設定',
         'show_key': '表示', 'hide_key': '非表示',
         'status': 'ステータス：',
+        'stat_elapsed':   '経過：',
+        'stat_remaining': '残り：',
+        'stat_frame':     'フレーム：',
+        'stat_blocks':    'ブロック/フレーム：',
+        'stat_blocksize': 'ブロックサイズ：',
+        'stat_filesize':  'ファイルサイズ：',
+        'stat_grid':      'グリッド：',
+        'stat_fps':       'FPS：',
+        'stat_encrypt':   '暗号化：',
+        'stat_on':        'ON',
+        'stat_off':       'OFF',
+        'done_title':     '完了！',
+        'done_encode':    'エンコード完了（{t}）。\n\nファイル：{out}\nサイズ：{sz}\nフレーム：{fr}\n長さ：{dur}',
+        'done_decode':    'デコード完了（{t}）。\n\nファイル：{out}\n処理フレーム：{fr}',
+        'err_title':      'エラー',
+        'err_encode':     'エンコード失敗（{t}）。',
+        'err_decode':     'デコード失敗（{t}）。',
     },
     'ko': {
         'encode': '인코드', 'decode': '디코드', 'settings': '설정',
         'input_file': '입력 파일:', 'output_file': '출력 파일 (MP4):',
         'output_folder': '출력 폴더:', 'browse': '찾아보기...',
         'start_encode': '인코딩 시작', 'start_decode': '디코딩 시작',
-        'clear_console': '지우기', 'encryption_key': '암호화 키:',
+        'encryption_key': '암호화 키:',
         'no_key': '(비워두면 암호화 비활성화)',
         'theme': '테마:', 'language': '언어:',
         'theme_system': '시스템', 'theme_dark': '어두운', 'theme_light': '밝은',
-        'console_label': '콘솔 출력:', 'ready': '준비',
+        'ready': '준비',
         'encoding': '인코딩 중...', 'decoding': '디코딩 중...',
         'done': '완료!', 'error': '오류',
         'select_input': '입력 파일 선택',
@@ -309,6 +497,23 @@ TRANSLATIONS = {
         'settings_title': '설정',
         'show_key': '표시', 'hide_key': '숨기기',
         'status': '상태:',
+        'stat_elapsed':   '경과:',
+        'stat_remaining': '남은 시간:',
+        'stat_frame':     '프레임:',
+        'stat_blocks':    '블록/프레임:',
+        'stat_blocksize': '블록 크기:',
+        'stat_filesize':  '파일 크기:',
+        'stat_grid':      '격자:',
+        'stat_fps':       'FPS:',
+        'stat_encrypt':   '암호화:',
+        'stat_on':        'ON',
+        'stat_off':       'OFF',
+        'done_title':     '완료!',
+        'done_encode':    '인코딩 완료 ({t}).\n\n파일: {out}\n크기: {sz}\n프레임: {fr}\n길이: {dur}',
+        'done_decode':    '디코딩 완료 ({t}).\n\n파일: {out}\n처리된 프레임: {fr}',
+        'err_title':      '오류',
+        'err_encode':     '인코딩 실패 ({t}).',
+        'err_decode':     '디코딩 실패 ({t}).',
     },
 }
 
@@ -319,11 +524,6 @@ LANGUAGE_NAMES = {
     'zh': '中文', 'ja': '日本語', 'ko': '한국어',
 }
 LANG_ORDER = ['en', 'ru', 'uk', 'de', 'fr', 'es', 'pl', 'pt', 'it', 'zh', 'ja', 'ko']
-
-FOOTER_TEXT = (
-    "Original code by KorocheVolgin: https://github.com/KorocheVolgin/YouTube-Cloude/    "
-    "UI and additional by BlackCAT304: https://github.com/BlackCAT304-RT/FileToVideo"
-)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -350,15 +550,10 @@ if BACKEND_AVAILABLE:
                 '1111': (255, 255, 255),
             }
             self.marker_size = 80
-            self.blocks_x = (self.width - 2*self.marker_size) // (self.block_width + self.spacing)
-            self.blocks_y = (self.height - 2*self.marker_size) // (self.block_height + self.spacing)
+            self.blocks_x = (self.width - 2 * self.marker_size) // (self.block_width + self.spacing)
+            self.blocks_y = (self.height - 2 * self.marker_size) // (self.block_height + self.spacing)
             self.blocks_per_region = self.blocks_x * self.blocks_y
             self.eof_bytes = ("█" * 64).encode('utf-8')
-            print("=" * 60)
-            print("ENCODER FileToVideo (6 FPS)")
-            print("=" * 60)
-            print(f"Grid: {self.blocks_x} x {self.blocks_y} blocks/region")
-            print(f"Encryption: {'ON' if self.use_encryption else 'OFF'}")
 
         def _encrypt_data(self, data):
             if not self.use_encryption:
@@ -401,38 +596,25 @@ if BACKEND_AVAILABLE:
                     bits.append(str((byte >> i) & 1))
             while len(bits) % 4 != 0:
                 bits.append('0')
-            return [''.join(bits[i:i+4]) for i in range(0, len(bits), 4)]
+            return [''.join(bits[i:i + 4]) for i in range(0, len(bits), 4)]
 
-        # ── progress_callback(current_frame, total_frames) ──────────────────
         def encode(self, input_file, output_file, progress_callback=None):
             with open(input_file, 'rb') as f:
                 data = f.read()
-            print(f"\nFile: {input_file}")
-            print(f"Size: {len(data)} bytes")
             enc_data = self._encrypt_data(data) if self.use_encryption else data
-            if self.use_encryption:
-                print("Data encrypted")
             header = f"FILE:{os.path.basename(input_file)}:SIZE:{len(data)}|"
-            print(f"Header: {header}")
             all_blocks = (
                 self._data_to_blocks(header.encode('latin-1')) +
                 self._data_to_blocks(enc_data) +
                 self._data_to_blocks(self.eof_bytes)
             )
-            print(f"Total blocks: {len(all_blocks)}")
             data_frames = math.ceil(len(all_blocks) / self.blocks_per_region)
             frames_needed = data_frames + 5
-            print(f"Frames needed: {frames_needed}")
-            print(f"Duration: {frames_needed / self.fps:.1f}s")
             temp_dir = tempfile.mkdtemp()
             try:
                 for frame_num in range(data_frames):
-                    if frame_num % 10 == 0:
-                        print(f"Frame {frame_num + 1}/{frames_needed}")
-                    # ── report progress (data frames only, 0–90%) ──────────
                     if progress_callback:
                         progress_callback(frame_num + 1, frames_needed)
-
                     frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
                     frame = self._draw_markers(frame)
                     start_idx = frame_num * self.blocks_per_region
@@ -446,7 +628,6 @@ if BACKEND_AVAILABLE:
                                 self._draw_block(frame, x, y, self._bits_to_color(bits))
                     cv2.imwrite(os.path.join(temp_dir, f"frame_{frame_num:05d}.png"), frame)
 
-                print("Creating guard frames...")
                 for i in range(5):
                     fn = data_frames + i
                     frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
@@ -456,11 +637,9 @@ if BACKEND_AVAILABLE:
                             self._draw_block(frame, x, y, (255, 0, 0))
                     cv2.imwrite(os.path.join(temp_dir, f"frame_{fn:05d}.png"), frame)
 
-                # ── ffmpeg / muxing phase: report indeterminate progress ────
                 if progress_callback:
-                    progress_callback(frames_needed, frames_needed)  # show 100% during mux
+                    progress_callback(frames_needed, frames_needed)
 
-                print("Converting to MP4...")
                 try:
                     subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
                     subprocess.run([
@@ -470,9 +649,7 @@ if BACKEND_AVAILABLE:
                         '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart',
                         '-y', output_file
                     ], check=True, capture_output=True)
-                    print("FFmpeg conversion successful")
                 except Exception:
-                    print("FFmpeg not available, using OpenCV...")
                     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                     out = cv2.VideoWriter(output_file, fourcc, self.fps, (self.width, self.height))
                     for fn in range(frames_needed):
@@ -482,13 +659,10 @@ if BACKEND_AVAILABLE:
                     out.release()
             finally:
                 shutil.rmtree(temp_dir, ignore_errors=True)
-                print("Temp files removed")
+
             if os.path.exists(output_file):
-                sz = os.path.getsize(output_file)
-                print(f"\nVideo saved: {output_file}")
-                print(f"Size: {sz / 1024 / 1024:.2f} MB | Frames: {frames_needed} | Duration: {frames_needed / self.fps:.1f}s")
-                return True
-            return False
+                return True, frames_needed
+            return False, frames_needed
 
 
     class YouTubeDecoder:
@@ -511,17 +685,10 @@ if BACKEND_AVAILABLE:
             self.color_values = np.array(list(self.colors.values()), dtype=np.int32)
             self.color_keys = list(self.colors.keys())
             self.color_cache = {}
-            self.cache_hits = 0
-            self.cache_misses = 0
-            self.blocks_x = (self.width - 2*self.marker_size) // (self.block_width + self.spacing)
-            self.blocks_y = (self.height - 2*self.marker_size) // (self.block_height + self.spacing)
+            self.blocks_x = (self.width - 2 * self.marker_size) // (self.block_width + self.spacing)
+            self.blocks_y = (self.height - 2 * self.marker_size) // (self.block_height + self.spacing)
             self.blocks_per_region = self.blocks_x * self.blocks_y
             self._precompute_coords()
-            print("=" * 60)
-            print("DECODER FileToVideo")
-            print("=" * 60)
-            print(f"Grid: {self.blocks_x} x {self.blocks_y} blocks")
-            print(f"Key: {'SET' if self.key else 'NONE'}")
 
         def _precompute_coords(self):
             self.block_coords = []
@@ -542,9 +709,7 @@ if BACKEND_AVAILABLE:
         def _color_to_bits(self, color):
             key = (int(color[0]), int(color[1]), int(color[2]))
             if key in self.color_cache:
-                self.cache_hits += 1
                 return self.color_cache[key]
-            self.cache_misses += 1
             if color[0] > 200 and color[1] < 50 and color[2] < 50:
                 self.color_cache[key] = '0000'
                 return '0000'
@@ -566,7 +731,7 @@ if BACKEND_AVAILABLE:
             bits = ''.join(blocks)
             result = bytearray()
             for i in range(0, len(bits) - 7, 8):
-                bs = bits[i:i+8]
+                bs = bits[i:i + 8]
                 if len(bs) == 8:
                     try:
                         result.append(int(bs, 2))
@@ -577,25 +742,17 @@ if BACKEND_AVAILABLE:
         def _find_eof(self, data):
             eof = b'\xe2\x96\x88' * 64
             for i in range(len(data) - len(eof)):
-                if data[i:i+len(eof)] == eof:
+                if data[i:i + len(eof)] == eof:
                     return i
             return -1
 
-        # ── progress_callback(current_frame, total_frames) ──────────────────
         def decode(self, video_file, output_dir='.', progress_callback=None):
-            print(f"\nDecoding: {video_file}")
             if not os.path.exists(video_file):
-                print(f"File not found: {video_file}")
-                return False
+                return False, 0, None
             cap = cv2.VideoCapture(video_file)
             if not cap.isOpened():
-                print("Cannot open video")
-                return False
+                return False, 0, None
             total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            print(f"Frames: {total} | FPS: {cap.get(cv2.CAP_PROP_FPS)} | "
-                  f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
-            self.cache_hits = self.cache_misses = 0
-            t0 = time.time()
             all_blocks = []
             done = 0
             for fn in range(total):
@@ -603,38 +760,25 @@ if BACKEND_AVAILABLE:
                 if not ret:
                     break
                 done += 1
-                if fn % 50 == 0:
-                    el = time.time() - t0
-                    sp = done / el if el > 0 else 0
-                    cr = self.cache_hits / max(1, self.cache_hits + self.cache_misses) * 100
-                    print(f"  Progress: {fn}/{total} | {sp:.1f} fps | Cache: {cr:.1f}%")
-                # ── report progress every frame ────────────────────────────
                 if progress_callback:
                     progress_callback(fn + 1, total)
-
                 all_blocks.extend(self.decode_frame(frame))
             cap.release()
-            el = time.time() - t0
-            print(f"\n{len(all_blocks)} blocks in {el:.1f}s | {done} frames processed")
             data = self._blocks_to_bytes(all_blocks)
-            print(f"Raw bytes: {len(data)}")
             eof_pos = self._find_eof(data)
             if eof_pos > 0:
                 data = data[:eof_pos]
-                print(f"EOF marker at position {eof_pos}")
             match = re.search(r'FILE:([^:]+):SIZE:(\d+)\|',
                               data[:1000].decode('latin-1', errors='ignore'))
+            out_path = None
             if match:
                 filename = match.group(1)
                 filesize = int(match.group(2))
-                print(f"\nHeader found: {filename} ({filesize} bytes)")
                 hb = match.group(0).encode('latin-1')
                 hp = data.find(hb)
                 if hp >= 0:
                     enc = data[hp + len(hb): hp + len(hb) + filesize]
                     fdata = self._decrypt_data(enc) if self.key else enc
-                    if self.key:
-                        print("Data decrypted")
                     out_path = os.path.join(output_dir, filename)
                     base, ext = os.path.splitext(filename)
                     n = 1
@@ -643,33 +787,36 @@ if BACKEND_AVAILABLE:
                         n += 1
                     with open(out_path, 'wb') as f:
                         f.write(fdata)
-                    print(f"\nFile restored: {out_path}")
-                    print(f"Size: {len(fdata)} bytes" +
-                          (" (matches original)" if len(fdata) == filesize else f" (expected {filesize})"))
-                    return True
-            else:
-                print("Header not found")
+                    return True, done, out_path
             out_path = os.path.join(output_dir, "decoded_data.bin")
             with open(out_path, 'wb') as f:
                 f.write(data)
-            print(f"\nRaw data saved: {out_path}")
-            return False
+            return False, done, out_path
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STDOUT → QUEUE
+# HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-class QueueStream:
-    def __init__(self, q):
-        self.q = q
-    def write(self, text):
-        if text:
-            self.q.put(text)
-    def flush(self):
-        pass
-    def isatty(self):
-        return False
+def fmt_time(seconds):
+    """Format seconds as MM:SS or HH:MM:SS."""
+    seconds = int(seconds)
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    return f"{m:02d}:{s:02d}"
+
+
+def fmt_size(nbytes):
+    """Human-readable file size."""
+    if nbytes < 1024:
+        return f"{nbytes} B"
+    elif nbytes < 1024 ** 2:
+        return f"{nbytes / 1024:.1f} KB"
+    elif nbytes < 1024 ** 3:
+        return f"{nbytes / 1024 ** 2:.2f} MB"
+    return f"{nbytes / 1024 ** 3:.2f} GB"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -677,20 +824,41 @@ class QueueStream:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class FileToVideoApp:
+    # ── static encoder params (match YouTubeEncoder defaults) ────────────────
+    _BLOCK_W = 24
+    _BLOCK_H = 16
+    _SPACING = 4
+    _MARKER  = 80
+    _FPS     = 6
+    _VW, _VH = 1920, 1080
+
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("FileToVideo")
-        self.root.geometry("740x560")          # немного выше чтобы влезли прогресс-бары
-        self.root.minsize(560, 400)
+        self.root.geometry("660x420")
+        self.root.minsize(520, 360)
         self.root.resizable(False, False)
 
-        self.current_lang  = 'ru'
-        self._key_visible  = False
-        self.is_running    = False
-        self.active_tab    = 'encode'
+        self.current_lang = 'ru'
+        self._key_visible = False
+        self.is_running   = False
+        self.active_tab   = 'encode'
 
-        self.con_queue = queue.Queue()
+        # task state
+        self._start_time   = None
+        self._timer_id     = None
+        self._cur_frame    = 0
+        self._tot_frames   = 0
+        self._active_mode  = None   # 'encode' | 'decode'
 
+        # computed grid info (constant)
+        bx = (self._VW - 2 * self._MARKER) // (self._BLOCK_W + self._SPACING)
+        by = (self._VH - 2 * self._MARKER) // (self._BLOCK_H + self._SPACING)
+        self._grid_str  = f"{bx} × {by}"
+        self._bpf_str   = str(bx * by)
+        self._bsize_str = f"{self._BLOCK_W}×{self._BLOCK_H} px"
+
+        # string vars
         self.enc_in_var  = tk.StringVar()
         self.enc_out_var = tk.StringVar()
         self.dec_in_var  = tk.StringVar()
@@ -698,9 +866,20 @@ class FileToVideoApp:
         self.key_var     = tk.StringVar()
         self.lang_var    = tk.StringVar(value=LANGUAGE_NAMES['ru'])
 
-        # ── прогресс-переменные (0.0 – 100.0) ────────────────────────────
         self.enc_progress_var = tk.DoubleVar(value=0.0)
         self.dec_progress_var = tk.DoubleVar(value=0.0)
+
+        # dynamic stat StringVars
+        self.enc_elapsed_var   = tk.StringVar(value="--:--")
+        self.enc_remaining_var = tk.StringVar(value="--:--")
+        self.enc_frame_var     = tk.StringVar(value="—")
+        self.enc_filesize_var  = tk.StringVar(value="—")
+        self.enc_encrypt_var   = tk.StringVar(value="—")
+
+        self.dec_elapsed_var   = tk.StringVar(value="--:--")
+        self.dec_remaining_var = tk.StringVar(value="--:--")
+        self.dec_frame_var     = tk.StringVar(value="—")
+        self.dec_encrypt_var   = tk.StringVar(value="—")
 
         self.display_to_code = {LANGUAGE_NAMES[c]: c for c in LANG_ORDER}
 
@@ -709,11 +888,9 @@ class FileToVideoApp:
         self._apply_language()
         self._show_tab('encode')
 
-        self.root.after(100, self._drain_queue)
-
         self.root.mainloop()
 
-    # ── helpers ───────────────────────────────────────────────────────────────
+    # ── icon ──────────────────────────────────────────────────────────────────
 
     def _load_icon(self):
         try:
@@ -728,18 +905,63 @@ class FileToVideoApp:
         return TRANSLATIONS.get(self.current_lang, TRANSLATIONS['en']).get(
             key, TRANSLATIONS['en'].get(key, key))
 
-    # ── progress helper (вызывается из рабочего треда) ────────────────────────
+    # ── live timer (called from main thread via after()) ──────────────────────
+
+    def _tick(self):
+        if not self.is_running:
+            return
+        elapsed = time.time() - self._start_time
+        ef = fmt_time(elapsed)
+
+        # estimate remaining
+        rf = "—"
+        if self._tot_frames > 0 and self._cur_frame > 0:
+            rate = self._cur_frame / elapsed
+            rem  = (self._tot_frames - self._cur_frame) / rate
+            rf   = "~" + fmt_time(rem)
+
+        fstr = f"{self._cur_frame} / {self._tot_frames}" if self._tot_frames else "—"
+
+        if self._active_mode == 'encode':
+            self.enc_elapsed_var.set(ef)
+            self.enc_remaining_var.set(rf)
+            self.enc_frame_var.set(fstr)
+        else:
+            self.dec_elapsed_var.set(ef)
+            self.dec_remaining_var.set(rf)
+            self.dec_frame_var.set(fstr)
+
+        self._timer_id = self.root.after(500, self._tick)
+
+    def _start_timer(self, mode):
+        self._active_mode = mode
+        self._start_time  = time.time()
+        self._cur_frame   = 0
+        self._tot_frames  = 0
+        if self._timer_id:
+            self.root.after_cancel(self._timer_id)
+        self._timer_id = self.root.after(500, self._tick)
+
+    def _stop_timer(self):
+        if self._timer_id:
+            self.root.after_cancel(self._timer_id)
+            self._timer_id = None
+
+    # ── progress callbacks (safe from worker thread) ──────────────────────────
+
     def _make_enc_progress_cb(self):
-        """Возвращает колбэк для энкодера, безопасный для вызова из треда."""
         def cb(current, total):
             pct = (current / total * 100.0) if total > 0 else 0.0
+            self._cur_frame  = current
+            self._tot_frames = total
             self.root.after(0, lambda p=pct: self.enc_progress_var.set(p))
         return cb
 
     def _make_dec_progress_cb(self):
-        """Возвращает колбэк для декодера, безопасный для вызова из треда."""
         def cb(current, total):
             pct = (current / total * 100.0) if total > 0 else 0.0
+            self._cur_frame  = current
+            self._tot_frames = total
             self.root.after(0, lambda p=pct: self.dec_progress_var.set(p))
         return cb
 
@@ -749,7 +971,7 @@ class FileToVideoApp:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
 
-        # Tab bar at the top
+        # Tab bar
         self.tab_bar = tk.Frame(self.root, relief='flat', bd=0)
         self.tab_bar.grid(row=0, column=0, sticky='ew', padx=2, pady=(4, 0))
 
@@ -759,24 +981,12 @@ class FileToVideoApp:
             b.pack(side='left', padx=2, pady=2)
             self._tab_btns[name] = b
 
-        # Plain 1px separator (themeable)
-        self.tab_sep = tk.Frame(self.root, height=1, bd=0)
-        self.tab_sep.grid(row=0, column=0, sticky='sew')
-
-        # Vertical paned: content on top, console on bottom
-        self.paned = tk.PanedWindow(self.root, orient=tk.VERTICAL,
-                                     sashwidth=5, sashrelief='flat', relief='flat')
-        self.paned.grid(row=1, column=0, sticky='nsew', padx=2, pady=2)
-
-        self.content_host = tk.Frame(self.paned)
-        self.paned.add(self.content_host, minsize=160, stretch='always')
+        # Content area
+        self.content_host = tk.Frame(self.root)
+        self.content_host.grid(row=1, column=0, sticky='nsew', padx=4, pady=4)
         self.content_host.columnconfigure(0, weight=1)
         self.content_host.rowconfigure(0, weight=1)
 
-        self.con_host = tk.Frame(self.paned)
-        self.paned.add(self.con_host, minsize=80, stretch='always')
-
-        # Tabs (stacked)
         self._tabs = {}
         self._tabs['encode']   = self._build_encode_tab()
         self._tabs['decode']   = self._build_decode_tab()
@@ -785,11 +995,7 @@ class FileToVideoApp:
         for f in self._tabs.values():
             f.place(in_=self.content_host, relwidth=1, relheight=1)
 
-        self._build_console()
         self._build_footer()
-
-        self.root.update_idletasks()
-        self.root.after(60, lambda: self.paned.sash_place(0, 0, 240))
 
     # ── encode tab ────────────────────────────────────────────────────────────
 
@@ -797,40 +1003,40 @@ class FileToVideoApp:
         f = tk.Frame(self.content_host)
         f.columnconfigure(1, weight=1)
 
+        # Input file
         self.enc_in_lbl = tk.Label(f)
-        self.enc_in_lbl.grid(row=0, column=0, sticky='w', padx=(8, 4), pady=(8, 2))
-        self.enc_in_entry = tk.Entry(f, textvariable=self.enc_in_var)
-        self.enc_in_entry.grid(row=0, column=1, sticky='ew', pady=(8, 2))
+        self.enc_in_lbl.grid(row=0, column=0, sticky='w', padx=(8, 4), pady=(10, 3))
+        tk.Entry(f, textvariable=self.enc_in_var).grid(row=0, column=1, sticky='ew', pady=(10, 3))
         self.enc_in_btn = tk.Button(f, command=self._browse_enc_in)
-        self.enc_in_btn.grid(row=0, column=2, padx=(4, 8), pady=(8, 2))
+        self.enc_in_btn.grid(row=0, column=2, padx=(4, 8), pady=(10, 3))
 
+        # Output file
         self.enc_out_lbl = tk.Label(f)
-        self.enc_out_lbl.grid(row=1, column=0, sticky='w', padx=(8, 4), pady=2)
-        self.enc_out_entry = tk.Entry(f, textvariable=self.enc_out_var)
-        self.enc_out_entry.grid(row=1, column=1, sticky='ew', pady=2)
+        self.enc_out_lbl.grid(row=1, column=0, sticky='w', padx=(8, 4), pady=3)
+        tk.Entry(f, textvariable=self.enc_out_var).grid(row=1, column=1, sticky='ew', pady=3)
         self.enc_out_btn = tk.Button(f, command=self._browse_enc_out)
-        self.enc_out_btn.grid(row=1, column=2, padx=(4, 8), pady=2)
+        self.enc_out_btn.grid(row=1, column=2, padx=(4, 8), pady=3)
 
+        # Encryption key
         self.enc_key_lbl = tk.Label(f)
-        self.enc_key_lbl.grid(row=2, column=0, sticky='w', padx=(8, 4), pady=2)
-
+        self.enc_key_lbl.grid(row=2, column=0, sticky='w', padx=(8, 4), pady=3)
         kf = tk.Frame(f)
-        kf.grid(row=2, column=1, sticky='ew', pady=2)
+        kf.grid(row=2, column=1, sticky='ew', pady=3)
         kf.columnconfigure(0, weight=1)
         self.enc_key_entry = tk.Entry(kf, textvariable=self.key_var, show='*')
         self.enc_key_entry.grid(row=0, column=0, sticky='ew')
         self.enc_key_note = tk.Label(kf, font=('TkDefaultFont', 7))
         self.enc_key_note.grid(row=1, column=0, sticky='w')
-
         kb = tk.Frame(f)
-        kb.grid(row=2, column=2, padx=(4, 8), pady=2)
+        kb.grid(row=2, column=2, padx=(4, 8), pady=3)
         self.enc_show_btn = tk.Button(kb, width=6, command=self._toggle_key)
         self.enc_show_btn.pack(side='left', padx=(0, 2))
         self.enc_load_btn = tk.Button(kb, command=self._load_key_file)
         self.enc_load_btn.pack(side='left')
 
+        # Start + status
         sf = tk.Frame(f)
-        sf.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 4))
+        sf.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 2))
         self.enc_start_btn = tk.Button(sf, command=self._start_encode)
         self.enc_start_btn.pack(side='left', padx=(0, 10))
         self.enc_status_lbl = tk.Label(sf, font=('TkDefaultFont', 8))
@@ -838,14 +1044,46 @@ class FileToVideoApp:
         self.enc_status_val = tk.Label(sf, font=('TkDefaultFont', 8))
         self.enc_status_val.pack(side='left')
 
-        # ── прогресс-бар (строка 4) ───────────────────────────────────────
+        # Progress bar
         self.enc_progress = ttk.Progressbar(
-            f, variable=self.enc_progress_var,
-            maximum=100, mode='determinate', length=400
-        )
+            f, variable=self.enc_progress_var, maximum=100,
+            mode='determinate', length=300)
         self.enc_progress.grid(row=4, column=0, columnspan=3,
-                                sticky='ew', padx=8, pady=(0, 8))
+                               sticky='ew', padx=8, pady=(2, 4))
 
+        # ── Stats panel ──────────────────────────────────────────────────────
+        sf2 = tk.LabelFrame(f, padx=6, pady=4)
+        sf2.grid(row=5, column=0, columnspan=3, sticky='ew', padx=8, pady=(0, 8))
+        sf2.columnconfigure(1, weight=1)
+        sf2.columnconfigure(3, weight=1)
+        self._enc_stat_frame = sf2
+
+        def _slbl(parent, r, c, tvar):
+            """Stat label pair: bold key + value."""
+            lbl = tk.Label(parent, anchor='e', font=('TkDefaultFont', 8, 'bold'))
+            lbl.grid(row=r, column=c, sticky='e', padx=(4, 2))
+            val = tk.Label(parent, textvariable=tvar, anchor='w',
+                           font=('TkDefaultFont', 8))
+            val.grid(row=r, column=c + 1, sticky='w', padx=(0, 10))
+            return lbl
+
+        _sv = tk.StringVar(value=f"{self._BLOCK_W}×{self._BLOCK_H} px")
+        _gv = tk.StringVar(value=self._grid_str)
+        _bv = tk.StringVar(value=self._bpf_str)
+        _fv = tk.StringVar(value=f"{self._FPS}")
+
+        self._enc_lbl_elapsed   = _slbl(sf2, 0, 0, self.enc_elapsed_var)
+        self._enc_lbl_remaining = _slbl(sf2, 0, 2, self.enc_remaining_var)
+        self._enc_lbl_frame     = _slbl(sf2, 1, 0, self.enc_frame_var)
+        self._enc_lbl_filesize  = _slbl(sf2, 1, 2, self.enc_filesize_var)
+        self._enc_lbl_blocksize = _slbl(sf2, 2, 0, _sv)
+        self._enc_lbl_grid      = _slbl(sf2, 2, 2, _gv)
+        self._enc_lbl_blocks    = _slbl(sf2, 3, 0, _bv)
+        self._enc_lbl_fps       = _slbl(sf2, 3, 2, _fv)
+        self._enc_lbl_encrypt   = _slbl(sf2, 4, 0, self.enc_encrypt_var)
+
+        # keep fixed vars for re-labelling
+        self._enc_sv_fixed = [_sv, _gv, _bv, _fv]
         return f
 
     # ── decode tab ────────────────────────────────────────────────────────────
@@ -855,122 +1093,111 @@ class FileToVideoApp:
         f.columnconfigure(1, weight=1)
 
         self.dec_in_lbl = tk.Label(f)
-        self.dec_in_lbl.grid(row=0, column=0, sticky='w', padx=(8, 4), pady=(8, 2))
-        self.dec_in_entry = tk.Entry(f, textvariable=self.dec_in_var)
-        self.dec_in_entry.grid(row=0, column=1, sticky='ew', pady=(8, 2))
+        self.dec_in_lbl.grid(row=0, column=0, sticky='w', padx=(8, 4), pady=(10, 3))
+        tk.Entry(f, textvariable=self.dec_in_var).grid(row=0, column=1, sticky='ew', pady=(10, 3))
         self.dec_in_btn = tk.Button(f, command=self._browse_dec_in)
-        self.dec_in_btn.grid(row=0, column=2, padx=(4, 8), pady=(8, 2))
+        self.dec_in_btn.grid(row=0, column=2, padx=(4, 8), pady=(10, 3))
 
         self.dec_out_lbl = tk.Label(f)
-        self.dec_out_lbl.grid(row=1, column=0, sticky='w', padx=(8, 4), pady=2)
-        self.dec_out_entry = tk.Entry(f, textvariable=self.dec_out_var)
-        self.dec_out_entry.grid(row=1, column=1, sticky='ew', pady=2)
+        self.dec_out_lbl.grid(row=1, column=0, sticky='w', padx=(8, 4), pady=3)
+        tk.Entry(f, textvariable=self.dec_out_var).grid(row=1, column=1, sticky='ew', pady=3)
         self.dec_out_btn = tk.Button(f, command=self._browse_dec_out)
-        self.dec_out_btn.grid(row=1, column=2, padx=(4, 8), pady=2)
+        self.dec_out_btn.grid(row=1, column=2, padx=(4, 8), pady=3)
 
         self.dec_key_lbl = tk.Label(f)
-        self.dec_key_lbl.grid(row=2, column=0, sticky='w', padx=(8, 4), pady=2)
-
+        self.dec_key_lbl.grid(row=2, column=0, sticky='w', padx=(8, 4), pady=3)
         kf2 = tk.Frame(f)
-        kf2.grid(row=2, column=1, sticky='ew', pady=2)
+        kf2.grid(row=2, column=1, sticky='ew', pady=3)
         kf2.columnconfigure(0, weight=1)
         self.dec_key_entry = tk.Entry(kf2, textvariable=self.key_var, show='*')
         self.dec_key_entry.grid(row=0, column=0, sticky='ew')
         self.dec_key_note = tk.Label(kf2, font=('TkDefaultFont', 7))
         self.dec_key_note.grid(row=1, column=0, sticky='w')
-
         kb2 = tk.Frame(f)
-        kb2.grid(row=2, column=2, padx=(4, 8), pady=2)
+        kb2.grid(row=2, column=2, padx=(4, 8), pady=3)
         self.dec_show_btn = tk.Button(kb2, width=6, command=self._toggle_key)
         self.dec_show_btn.pack(side='left', padx=(0, 2))
         self.dec_load_btn = tk.Button(kb2, command=self._load_key_file)
         self.dec_load_btn.pack(side='left')
 
-        sf2 = tk.Frame(f)
-        sf2.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 4))
-        self.dec_start_btn = tk.Button(sf2, command=self._start_decode)
+        sf = tk.Frame(f)
+        sf.grid(row=3, column=0, columnspan=3, sticky='w', padx=8, pady=(8, 2))
+        self.dec_start_btn = tk.Button(sf, command=self._start_decode)
         self.dec_start_btn.pack(side='left', padx=(0, 10))
-        self.dec_status_lbl = tk.Label(sf2, font=('TkDefaultFont', 8))
+        self.dec_status_lbl = tk.Label(sf, font=('TkDefaultFont', 8))
         self.dec_status_lbl.pack(side='left')
-        self.dec_status_val = tk.Label(sf2, font=('TkDefaultFont', 8))
+        self.dec_status_val = tk.Label(sf, font=('TkDefaultFont', 8))
         self.dec_status_val.pack(side='left')
 
-        # ── прогресс-бар (строка 4) ───────────────────────────────────────
         self.dec_progress = ttk.Progressbar(
-            f, variable=self.dec_progress_var,
-            maximum=100, mode='determinate', length=400
-        )
+            f, variable=self.dec_progress_var, maximum=100,
+            mode='determinate', length=300)
         self.dec_progress.grid(row=4, column=0, columnspan=3,
-                                sticky='ew', padx=8, pady=(0, 8))
+                               sticky='ew', padx=8, pady=(2, 4))
 
+        # ── Stats panel ──────────────────────────────────────────────────────
+        sf2 = tk.LabelFrame(f, padx=6, pady=4)
+        sf2.grid(row=5, column=0, columnspan=3, sticky='ew', padx=8, pady=(0, 8))
+        sf2.columnconfigure(1, weight=1)
+        sf2.columnconfigure(3, weight=1)
+        self._dec_stat_frame = sf2
+
+        def _slbl(parent, r, c, tvar):
+            lbl = tk.Label(parent, anchor='e', font=('TkDefaultFont', 8, 'bold'))
+            lbl.grid(row=r, column=c, sticky='e', padx=(4, 2))
+            val = tk.Label(parent, textvariable=tvar, anchor='w',
+                           font=('TkDefaultFont', 8))
+            val.grid(row=r, column=c + 1, sticky='w', padx=(0, 10))
+            return lbl
+
+        _sv = tk.StringVar(value=f"{self._BLOCK_W}×{self._BLOCK_H} px")
+        _gv = tk.StringVar(value=self._grid_str)
+        _bv = tk.StringVar(value=self._bpf_str)
+
+        self._dec_lbl_elapsed   = _slbl(sf2, 0, 0, self.dec_elapsed_var)
+        self._dec_lbl_remaining = _slbl(sf2, 0, 2, self.dec_remaining_var)
+        self._dec_lbl_frame     = _slbl(sf2, 1, 0, self.dec_frame_var)
+        self._dec_lbl_blocksize = _slbl(sf2, 1, 2, _sv)
+        self._dec_lbl_grid      = _slbl(sf2, 2, 0, _gv)
+        self._dec_lbl_blocks    = _slbl(sf2, 2, 2, _bv)
+        self._dec_lbl_encrypt   = _slbl(sf2, 3, 0, self.dec_encrypt_var)
+
+        self._dec_sv_fixed = [_sv, _gv, _bv]
         return f
 
     # ── settings tab ──────────────────────────────────────────────────────────
 
     def _build_settings_tab(self):
         f = tk.Frame(self.content_host)
-
         self.set_lang_lbl = tk.Label(f)
         self.set_lang_lbl.grid(row=0, column=0, sticky='w', padx=(8, 6), pady=(10, 4))
-
         lang_names = [LANGUAGE_NAMES[c] for c in LANG_ORDER]
         self.lang_menu = tk.OptionMenu(f, self.lang_var, *lang_names,
-                                        command=self._on_lang_change)
+                                       command=self._on_lang_change)
         self.lang_menu.grid(row=0, column=1, sticky='w', pady=(10, 4))
-
         return f
-
-    # ── console ───────────────────────────────────────────────────────────────
-
-    def _build_console(self):
-        self.con_host.columnconfigure(0, weight=1)
-        self.con_host.rowconfigure(1, weight=1)
-
-        bar = tk.Frame(self.con_host)
-        bar.grid(row=0, column=0, columnspan=2, sticky='ew')
-        bar.columnconfigure(0, weight=1)
-        self.con_lbl = tk.Label(bar, font=('TkDefaultFont', 8, 'bold'), anchor='w')
-        self.con_lbl.grid(row=0, column=0, padx=4, pady=1, sticky='w')
-        self.con_clear_btn = tk.Button(bar, command=self._clear_console)
-        self.con_clear_btn.grid(row=0, column=1, padx=4, pady=1)
-
-        self.con_text = tk.Text(
-            self.con_host, font=('Courier', 9),
-            wrap=tk.WORD, state='disabled', relief='sunken', bd=1
-        )
-        self.con_text.grid(row=1, column=0, sticky='nsew')
-
-        self.con_sb = tk.Scrollbar(self.con_host, command=self.con_text.yview)
-        self.con_sb.grid(row=1, column=1, sticky='ns')
-        self.con_text.config(yscrollcommand=self.con_sb.set)
 
     # ── footer ────────────────────────────────────────────────────────────────
 
     def _build_footer(self):
         self.footer = tk.Frame(self.root, relief='sunken', bd=1)
         self.footer.grid(row=2, column=0, sticky='ew')
-
         tk.Label(self.footer, text='Original code by KorocheVolgin: ',
-                  font=('TkDefaultFont', 7)).pack(side='left', padx=(6, 0), pady=2)
-
+                 font=('TkDefaultFont', 7)).pack(side='left', padx=(6, 0), pady=2)
         lnk1 = tk.Label(self.footer,
                          text='https://github.com/KorocheVolgin/YouTube-Cloude/',
-                         font=('TkDefaultFont', 7, 'underline'),
-                         cursor='hand2')
+                         font=('TkDefaultFont', 7, 'underline'), cursor='hand2')
         lnk1.pack(side='left', pady=2)
-        lnk1.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/KorocheVolgin/YouTube-Cloude/'))
-        self._footer_link1 = lnk1
-
+        lnk1.bind('<Button-1>',
+                  lambda e: webbrowser.open('https://github.com/KorocheVolgin/YouTube-Cloude/'))
         tk.Label(self.footer, text='    UI and additional by BlackCAT304: ',
-                  font=('TkDefaultFont', 7)).pack(side='left', pady=2)
-
+                 font=('TkDefaultFont', 7)).pack(side='left', pady=2)
         lnk2 = tk.Label(self.footer,
                          text='https://github.com/BlackCAT304-RT/FileToVideo',
-                         font=('TkDefaultFont', 7, 'underline'),
-                         cursor='hand2')
+                         font=('TkDefaultFont', 7, 'underline'), cursor='hand2')
         lnk2.pack(side='left', pady=2)
-        lnk2.bind('<Button-1>', lambda e: webbrowser.open('https://github.com/BlackCAT304-RT/FileToVideo'))
-        self._footer_link2 = lnk2
+        lnk2.bind('<Button-1>',
+                  lambda e: webbrowser.open('https://github.com/BlackCAT304-RT/FileToVideo'))
 
     # ── tabs ──────────────────────────────────────────────────────────────────
 
@@ -990,6 +1217,12 @@ class FileToVideoApp:
         p = filedialog.askopenfilename(title=self.t('select_input'))
         if p:
             self.enc_in_var.set(p)
+            # update file size stat immediately
+            try:
+                sz = os.path.getsize(p)
+                self.enc_filesize_var.set(fmt_size(sz))
+            except Exception:
+                pass
             if not self.enc_out_var.get():
                 self.enc_out_var.set(os.path.splitext(p)[0] + '_encoded.mp4')
 
@@ -1031,86 +1264,160 @@ class FileToVideoApp:
             try:
                 with open(p, 'r', encoding='utf-8') as f:
                     self.key_var.set(f.read().strip())
-                self._log(f"Key loaded from {p}\n")
             except Exception as e:
-                self._log(f"Key load error: {e}\n")
+                messagebox.showerror("FileToVideo", str(e))
 
-    # ── operations ────────────────────────────────────────────────────────────
+    # ── encode ────────────────────────────────────────────────────────────────
 
     def _start_encode(self):
         if self.is_running:
             return
         if not BACKEND_AVAILABLE:
-            msg = f"Backend not available — {_BACKEND_ERROR}"
-            self._log(f"ERROR: {msg}\n")
-            messagebox.showerror("FileToVideo", msg)
+            messagebox.showerror("FileToVideo", f"Backend not available — {_BACKEND_ERROR}")
             return
         inp = self.enc_in_var.get().strip()
         out = self.enc_out_var.get().strip()
         if not inp:
-            self._log("ERROR: No input file selected\n")
             messagebox.showwarning("FileToVideo", self.t('select_input'))
             return
         if not out:
             out = os.path.splitext(inp)[0] + '_encoded.mp4'
             self.enc_out_var.set(out)
-        self.enc_progress_var.set(0.0)           # сбросить бар перед стартом
+
+        key = self.key_var.get().strip() or None
+
+        # update encrypt stat
+        enc_str = self.t('stat_on') if key else self.t('stat_off')
+        self.enc_encrypt_var.set(enc_str)
+
+        # update file size
+        try:
+            self.enc_filesize_var.set(fmt_size(os.path.getsize(inp)))
+        except Exception:
+            self.enc_filesize_var.set("—")
+
+        self.enc_progress_var.set(0.0)
+        self.enc_elapsed_var.set("00:00")
+        self.enc_remaining_var.set("--:--")
+        self.enc_frame_var.set("—")
+
         self._set_busy(True, 'encoding')
+        self._start_timer('encode')
+
         threading.Thread(
             target=self._run_encode,
-            args=(inp, out, self.key_var.get().strip() or None),
+            args=(inp, out, key),
             daemon=True
         ).start()
 
     def _run_encode(self, inp, out, key):
-        old, sys.stdout = sys.stdout, QueueStream(self.con_queue)
+        # suppress all prints from backend
+        old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
         ok = False
+        frames = 0
         try:
-            ok = YouTubeEncoder(key).encode(inp, out,
-                                             progress_callback=self._make_enc_progress_cb())
-        except Exception as e:
-            print(f"Exception: {e}")
+            result = YouTubeEncoder(key).encode(inp, out,
+                                                progress_callback=self._make_enc_progress_cb())
+            ok, frames = result
+        except Exception:
+            ok, frames = False, 0
         finally:
-            sys.stdout = old
-            # Установить 100% при успехе, 0% при ошибке
-            final_pct = 100.0 if ok else 0.0
-            self.root.after(0, lambda: self.enc_progress_var.set(final_pct))
-            self.root.after(0, lambda: self._set_busy(False, 'done' if ok else 'error'))
+            sys.stdout.close()
+            sys.stdout = old_stdout
+
+        elapsed = time.time() - self._start_time
+        final_pct = 100.0 if ok else 0.0
+
+        def _finish():
+            self.enc_progress_var.set(final_pct)
+            self._stop_timer()
+            self._set_busy(False, 'done' if ok else 'error')
+            self._load_icon()
+
+            t_str = fmt_time(elapsed)
+            if ok:
+                try:
+                    sz = fmt_size(os.path.getsize(out))
+                except Exception:
+                    sz = "—"
+                dur = f"{frames / self._FPS:.1f}s"
+                msg = self.t('done_encode').format(
+                    t=t_str, out=out, sz=sz, fr=frames, dur=dur)
+                messagebox.showinfo(self.t('done_title'), msg)
+            else:
+                msg = self.t('err_encode').format(t=t_str)
+                messagebox.showerror(self.t('err_title'), msg)
+
+        self.root.after(0, _finish)
+
+    # ── decode ────────────────────────────────────────────────────────────────
 
     def _start_decode(self):
         if self.is_running:
             return
         if not BACKEND_AVAILABLE:
-            msg = f"Backend not available — {_BACKEND_ERROR}"
-            self._log(f"ERROR: {msg}\n")
-            messagebox.showerror("FileToVideo", msg)
+            messagebox.showerror("FileToVideo", f"Backend not available — {_BACKEND_ERROR}")
             return
         inp = self.dec_in_var.get().strip()
         if not inp:
-            self._log("ERROR: No input file selected\n")
             messagebox.showwarning("FileToVideo", self.t('select_input'))
             return
-        self.dec_progress_var.set(0.0)           # сбросить бар перед стартом
+
+        key = self.key_var.get().strip() or None
+        enc_str = self.t('stat_on') if key else self.t('stat_off')
+        self.dec_encrypt_var.set(enc_str)
+
+        self.dec_progress_var.set(0.0)
+        self.dec_elapsed_var.set("00:00")
+        self.dec_remaining_var.set("--:--")
+        self.dec_frame_var.set("—")
+
         self._set_busy(True, 'decoding')
+        self._start_timer('decode')
+
         threading.Thread(
             target=self._run_decode,
-            args=(inp, self.dec_out_var.get().strip() or '.', self.key_var.get().strip() or None),
+            args=(inp, self.dec_out_var.get().strip() or '.', key),
             daemon=True
         ).start()
 
     def _run_decode(self, inp, out, key):
-        old, sys.stdout = sys.stdout, QueueStream(self.con_queue)
+        old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
         ok = False
+        frames = 0
+        out_path = None
         try:
-            ok = YouTubeDecoder(key).decode(inp, out,
-                                             progress_callback=self._make_dec_progress_cb())
-        except Exception as e:
-            print(f"Exception: {e}")
+            ok, frames, out_path = YouTubeDecoder(key).decode(inp, out,
+                                                              progress_callback=self._make_dec_progress_cb())
+        except Exception:
+            ok, frames, out_path = False, 0, None
         finally:
-            sys.stdout = old
-            final_pct = 100.0 if ok else 0.0
-            self.root.after(0, lambda: self.dec_progress_var.set(final_pct))
-            self.root.after(0, lambda: self._set_busy(False, 'done' if ok else 'error'))
+            sys.stdout.close()
+            sys.stdout = old_stdout
+
+        elapsed = time.time() - self._start_time
+        final_pct = 100.0 if ok else 0.0
+
+        def _finish():
+            self.dec_progress_var.set(final_pct)
+            self._stop_timer()
+            self._set_busy(False, 'done' if ok else 'error')
+            self._load_icon()
+
+            t_str = fmt_time(elapsed)
+            if ok or out_path:
+                msg = self.t('done_decode').format(
+                    t=t_str, out=out_path or out, fr=frames)
+                messagebox.showinfo(self.t('done_title'), msg)
+            else:
+                msg = self.t('err_decode').format(t=t_str)
+                messagebox.showerror(self.t('err_title'), msg)
+
+        self.root.after(0, _finish)
+
+    # ── busy state ────────────────────────────────────────────────────────────
 
     def _set_busy(self, busy, status='ready'):
         self.is_running = busy
@@ -1120,30 +1427,6 @@ class FileToVideoApp:
         txt = self.t(status)
         self.enc_status_val.config(text=txt)
         self.dec_status_val.config(text=txt)
-        if not busy:
-            self._load_icon()  # Re-apply icon after subprocess/thread resets it
-
-    # ── console ───────────────────────────────────────────────────────────────
-
-    def _drain_queue(self):
-        try:
-            while True:
-                self._log(self.con_queue.get_nowait())
-        except queue.Empty:
-            pass
-        self.root.after(100, self._drain_queue)
-
-    def _log(self, text):
-        self.con_text.config(state='normal')
-        self.con_text.insert('end', text)
-        self.con_text.tag_remove('sel', '1.0', 'end')
-        self.con_text.see('end')
-        self.con_text.config(state='disabled')
-
-    def _clear_console(self):
-        self.con_text.config(state='normal')
-        self.con_text.delete('1.0', 'end')
-        self.con_text.config(state='disabled')
 
     # ── language ──────────────────────────────────────────────────────────────
 
@@ -1181,8 +1464,24 @@ class FileToVideoApp:
 
         self.set_lang_lbl.config(text=self.t('language'))
 
-        self.con_lbl.config(text=self.t('console_label'))
-        self.con_clear_btn.config(text=self.t('clear_console'))
+        # Stat label texts
+        self._enc_lbl_elapsed.config(text=self.t('stat_elapsed'))
+        self._enc_lbl_remaining.config(text=self.t('stat_remaining'))
+        self._enc_lbl_frame.config(text=self.t('stat_frame'))
+        self._enc_lbl_filesize.config(text=self.t('stat_filesize'))
+        self._enc_lbl_blocksize.config(text=self.t('stat_blocksize'))
+        self._enc_lbl_grid.config(text=self.t('stat_grid'))
+        self._enc_lbl_blocks.config(text=self.t('stat_blocks'))
+        self._enc_lbl_fps.config(text=self.t('stat_fps'))
+        self._enc_lbl_encrypt.config(text=self.t('stat_encrypt'))
+
+        self._dec_lbl_elapsed.config(text=self.t('stat_elapsed'))
+        self._dec_lbl_remaining.config(text=self.t('stat_remaining'))
+        self._dec_lbl_frame.config(text=self.t('stat_frame'))
+        self._dec_lbl_blocksize.config(text=self.t('stat_blocksize'))
+        self._dec_lbl_grid.config(text=self.t('stat_grid'))
+        self._dec_lbl_blocks.config(text=self.t('stat_blocks'))
+        self._dec_lbl_encrypt.config(text=self.t('stat_encrypt'))
 
         self._refresh_tab_btns()
 
